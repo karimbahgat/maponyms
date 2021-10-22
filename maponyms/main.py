@@ -150,7 +150,7 @@ def text_detection(text_im, textcolor, **kwargs):
 
     return textinfo
 
-def toponym_selection(im, textinfo, seginfo, verbose=False):
+def toponym_selection(im, textinfo, seginfo=None, verbose=False):
     ################
     # Toponym selection
     texts = [f['properties'] for f in textinfo['features']]
