@@ -67,9 +67,11 @@ def image_partitioning(im):
 def text_detection(text_im, textcolor, **kwargs):
     ###############
     # Text detection
+    verbose = kwargs.get('verbose')
     
     # detect text
-    print('(detecting text)')
+    if verbose:
+        print('(detecting text)')
     if textcolor and not isinstance(textcolor, list):
         textcolor = [textcolor]
     texts = mapocr.textdetect.auto_detect_text(text_im, textcolor=textcolor, **kwargs)
@@ -78,13 +80,15 @@ def text_detection(text_im, textcolor, **kwargs):
     # deduplicate overlapping texts from different colors
     # very brute force...
     if len(toponym_colors) > 1:
-        print('(deduplicating texts of different colors)')
-        print('textlen',len(texts))
+        if verbose:
+            print('(deduplicating texts of different colors)')
+            print('textlen',len(texts))
         # for every combination of text colors
         for col,col2 in itertools.combinations(toponym_colors, 2):
             coltexts = [r for r in texts if r['color'] == col]
             coltexts2 = [r for r in texts if r['color'] == col2]
-            print('comparing textcolor',map(int,col),len(coltexts),'with',map(int,col2),len(coltexts2))
+            if verbose:
+                print('comparing textcolor',map(int,col),len(coltexts),'with',map(int,col2),len(coltexts2))
             # we got two different colored groups of text
             for r in coltexts:
                 for r2 in coltexts2:
@@ -99,15 +103,19 @@ def text_detection(text_im, textcolor, **kwargs):
                         #text_im.crop((r2['left'], r2['top'], r2['left']+r2['width'], r2['top']+r2['height'])).show()
                         if r2['color_match'] > r['color_match'] and not math.isnan(r2['color_match']):
                             r2['drop'] = True
-                            print(u'found duplicate texts of different colors, keeping "{}" (color match={:.2f}), dropping "{}" (color match={:.2f})'.format(r['text_clean'],r['color_match'],r2['text_clean'],r2['color_match']))
+                            if verbose:
+                                print(u'found duplicate texts of different colors, keeping "{}" (color match={:.2f}), dropping "{}" (color match={:.2f})'.format(r['text_clean'],r['color_match'],r2['text_clean'],r2['color_match']))
                         else:
                             r['drop'] = True
-                            print(u'found duplicate texts of different colors, keeping "{}" (color match={:.2f}), dropping "{}" (color match={:.2f})'.format(r2['text_clean'],r2['color_match'],r['text_clean'],r['color_match']))
+                            if verbose:
+                                print(u'found duplicate texts of different colors, keeping "{}" (color match={:.2f}), dropping "{}" (color match={:.2f})'.format(r2['text_clean'],r2['color_match'],r['text_clean'],r['color_match']))
         texts = [r for r in texts if not r.get('drop')]
-        print('textlen deduplicated',len(texts))
+        if verbose:
+            print('textlen deduplicated',len(texts))
 
     # connect texts
-    print('(connecting texts)')
+    if verbose:
+        print('(connecting texts)')
     grouped = []
     # connect each color texts separately
     for col in toponym_colors:
@@ -142,17 +150,19 @@ def text_detection(text_im, textcolor, **kwargs):
 
     return textinfo
 
-def toponym_selection(im, textinfo, seginfo):
+def toponym_selection(im, textinfo, seginfo, verbose=False):
     ################
     # Toponym selection
     texts = [f['properties'] for f in textinfo['features']]
 
     # filter toponym candidates
-    print('filtering toponym candidates')
+    if verbose:
+        print('filtering toponym candidates')
     topotexts = toponyms.filter_toponym_candidates(texts, seginfo)
 
     # text anchor points
-    print('determening toponym anchors')
+    if verbose:
+        print('determening toponym anchors')
     topotexts = toponyms.detect_toponym_anchors(im, texts, topotexts)
 
     # create control points from toponyms

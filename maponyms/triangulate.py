@@ -123,14 +123,16 @@ def triangulate_add(coder, origs, matches, add, addcandidates=None):
     matches = patternmatch.find_best_matches(findpattern, combipatterns)
     return matches
 
-def find_matchsets(test, thresh=0.25, minpoints=8, mintrials=8, maxiter=10000, maxcandidates=None, n_combi=3, db=None, source='best', debug=False):
+def find_matchsets(test, thresh=0.25, minpoints=8, mintrials=8, maxiter=10000, maxcandidates=None, n_combi=3, db=None, source='best', verbose=False, debug=False):
     # filter to those that can be geocoded
-    print('geocode and filter')
+    if verbose:
+        print('geocode and filter')
     coder = geocode.OptimizedCoder(db)
     
     testres = []
     for nxtname,nxtpos in test:
-        print('geocoding',nxtname)
+        if verbose:
+            print('geocoding',nxtname)
         try:
             res = list(coder.geocode(nxtname, maxcandidates))
             if res:
@@ -156,7 +158,8 @@ def find_matchsets(test, thresh=0.25, minpoints=8, mintrials=8, maxiter=10000, m
                     testres.append((nxtname,nxtpos,res))
                 #time.sleep(0.1)
         except Exception as err:
-            print('EXCEPTION:', err)
+            if verbose:
+                print('EXCEPTION:', err)
         
     #testres = [(nxtname,nxtpos,res)
     #           for nxtname,nxtpos,res in testres if res and len(res)<10]
@@ -164,8 +167,9 @@ def find_matchsets(test, thresh=0.25, minpoints=8, mintrials=8, maxiter=10000, m
     #           for nxtname,nxtpos,res in testres]
 
     # print names to be tested
-    for nxtname,nxtpos,res in testres:
-        print(nxtname,len(res))
+    if verbose:
+        for nxtname,nxtpos,res in testres:
+            print(nxtname,len(res))
 
     ### TEST: exhaustive search (experimental, not yet working)
 ##    n_combi = len(testres)
@@ -192,7 +196,8 @@ def find_matchsets(test, thresh=0.25, minpoints=8, mintrials=8, maxiter=10000, m
     # sort by length of possible geocodings, ie try most unique first --> faster+accurate
     combis = sorted(combis, key=lambda gr: sum((len(res) for nxtname,nxtpos,res in gr)))
 
-    print('\n'+'finding all possible triangles of {} possible combinations'.format(len(combis)))
+    if verbose:
+        print('\n'+'finding all possible triangles of {} possible combinations'.format(len(combis)))
     resultsets = []
     for i,tri in enumerate(combis):
         if debug:
@@ -207,7 +212,9 @@ def find_matchsets(test, thresh=0.25, minpoints=8, mintrials=8, maxiter=10000, m
                                 positions,
                                 candidates,
                                 flipy=True)
-        except Exception as err: print('EXCEPTION RAISED:',err)
+        except Exception as err: 
+            if verbose:
+                print('EXCEPTION RAISED:',err)
         if best:
             f,diff,diffs = best[0]
             #print f
@@ -249,8 +256,9 @@ def find_matchsets(test, thresh=0.25, minpoints=8, mintrials=8, maxiter=10000, m
                         resultset.append((nxtname,nxtpos))
                         f = mf
                 
-                print('\n'+'MATCHES FOUND (point pattern error=%r)' % round(diff,6))
-                print('>>>', repr([n for n,p in resultset]),'-->',[n[:15] for n in f['properties']['combination']])
+                if verbose:
+                    print('\n'+'MATCHES FOUND (point pattern error=%r)' % round(diff,6))
+                    print('>>>', repr([n for n,p in resultset]),'-->',[n[:15] for n in f['properties']['combination']])
 
                 resultsets.append((resultset,f,diff))
                 
@@ -268,7 +276,7 @@ def find_matchsets(test, thresh=0.25, minpoints=8, mintrials=8, maxiter=10000, m
 
     return resultsets
 
-def best_matchset(matchsets):
+def best_matchset(matchsets, verbose=False):
     resultsets = matchsets # rename for internal use
 
     ######
@@ -428,7 +436,8 @@ def best_matchset(matchsets):
     # FULL MODEL EST COMPARISONS
 
     # prep lists
-    print('\n'+'Comparing matchsets (full model comparison):')
+    if verbose:
+        print('\n'+'Comparing matchsets (full model comparison):')
     origpointsets,matchpointsets,diffs = zip(*resultsets)
     matchpointsets = [list(zip(f['properties']['combination'], f['geometry']['coordinates'])) for f in matchpointsets]
 
@@ -439,20 +448,24 @@ def best_matchset(matchsets):
         origpointnames,origpointcoords = zip(*origpointset)
         matchpointnames,matchpointcoords = zip(*matchpointset)
         res = tio.accuracy.auto_choose_model(origpointcoords, matchpointcoords, trytrans, refine_outliers=False)
-        print('matchset', i, 'length', len(origpointset), 'model', res[0], 'error', res[-2])
+        if verbose:
+            print('matchset', i, 'length', len(origpointset), 'model', res[0], 'error', res[-2])
         results.append((i,res))
 
     # get the set with the lowest model error
-    print('\n'+'Final matchset (full model comparison):')
+    if verbose:
+        print('\n'+'Final matchset (full model comparison):')
     #sortby = lambda(i,res): (-len(res[1]),res[-2]) # sort by setlength and then model error
     sortby = lambda i_res: i_res[1][-2] # sort by model error only
     best = sorted(results, key=sortby)[0] 
     best_i,(trans, inpoints, outpoints, err, resids) = best
-    print('chosen matchset num', best_i, 'model type', trans, 'model error', err)
+    if verbose:
+        print('chosen matchset num', best_i, 'model type', trans, 'model error', err)
     orignames,origcoords = zip(*origpointsets[best_i])
     matchnames,matchcoords = zip(*matchpointsets[best_i])
-    for n,c,mn,mc in zip(orignames,origcoords,matchnames,matchcoords):
-        print('final',n,c,mn[:50],mc)
+    if verbose:
+        for n,c,mn,mc in zip(orignames,origcoords,matchnames,matchcoords):
+            print('final',n,c,mn[:50],mc)
 
 
 

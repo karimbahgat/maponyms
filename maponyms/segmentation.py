@@ -118,7 +118,7 @@ def view_colors(colors):
     c.percent_space()
     x = 2
     for i,g in enumerate(colors):
-        print(i, g)
+        #print(i, g)
         x += 2
         c.draw_line([(x,0),(x,100)], fillcolor=g, fillsize=2)
     c.get_image().show()
