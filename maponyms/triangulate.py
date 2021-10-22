@@ -5,8 +5,8 @@ import itertools
 
 from . import patternmatch
 from . import geocode
-from . import transforms
-from . import accuracy
+
+import transformio as tio
 
 
 def triangulate(coder, names, positions, matchcandidates=None, flipy=False):
@@ -433,12 +433,12 @@ def best_matchset(matchsets):
     matchpointsets = [list(zip(f['properties']['combination'], f['geometry']['coordinates'])) for f in matchpointsets]
 
     # for each set, estimate the optimal polynomial model
-    trytrans = [transforms.Polynomial(order=1), transforms.Polynomial(order=2), transforms.Polynomial(order=3)]
+    trytrans = [tio.transforms.Polynomial(order=1), tio.transforms.Polynomial(order=2), tio.transforms.Polynomial(order=3)]
     results = []
     for i,(origpointset,matchpointset) in enumerate(zip(origpointsets,matchpointsets)):
         origpointnames,origpointcoords = zip(*origpointset)
         matchpointnames,matchpointcoords = zip(*matchpointset)
-        res = accuracy.auto_choose_model(origpointcoords, matchpointcoords, trytrans, refine_outliers=False)
+        res = tio.accuracy.auto_choose_model(origpointcoords, matchpointcoords, trytrans, refine_outliers=False)
         print('matchset', i, 'length', len(origpointset), 'model', res[0], 'error', res[-2])
         results.append((i,res))
 
