@@ -1,7 +1,7 @@
 
-Pillow==6
-numpy==1
+Pillow==6.*
+numpy==1.*
 colormath==3.0
-shapely==1
+shapely==1.*
 
-opencv-python-headless==4
+opencv-python-headless==4.*
