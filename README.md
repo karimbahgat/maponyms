@@ -5,7 +5,7 @@ Detects toponyms from map images.
 
 This library requires PIL, numpy, opencv, colormath, shapely, and mapocr and its dependencies for text recognition. 
 
-In addition, maponyms relies on a local sqlite database of gazetteer names to use for geocoding. This database must be created as follows:
+In addition, maponyms relies on a local sqlite database of gazetteer names to use for geocoding. For convenience, a version of this database can be downloaded from:
 
 ... 
 
