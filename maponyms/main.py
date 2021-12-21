@@ -71,7 +71,7 @@ def text_detection(text_im, textcolor, **kwargs):
     # detect text
     if verbose:
         print('(detecting text)')
-    if textcolor and not isinstance(textcolor, list):
+    if textcolor and isinstance(textcolor, (tuple,list)) and isinstance(textcolor[0], (int,float)):
         textcolor = [textcolor]
     texts = mapocr.textdetect.auto_detect_text(text_im, textcolor=textcolor, **kwargs)
     toponym_colors = set((r['color'] for r in texts))
