@@ -73,8 +73,9 @@ def text_detection(text_im, textcolor, **kwargs):
         print('(detecting text)')
     if textcolor and isinstance(textcolor, (tuple,list)) and isinstance(textcolor[0], (int,float)):
         textcolor = [textcolor]
+    textcolor = [tuple(c) for c in textcolor]
     texts = mapocr.textdetect.auto_detect_text(text_im, textcolor=textcolor, **kwargs)
-    toponym_colors = set((r['color'] for r in texts))
+    toponym_colors = set((tuple(r['color']) for r in texts))
 
     # deduplicate overlapping texts from different colors
     # very brute force...
