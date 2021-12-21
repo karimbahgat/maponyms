@@ -3,7 +3,7 @@ Detects toponyms from map images.
 
 ## Installation
 
-This library requires opencv for image segmentation, and mapocr and its dependencies for text recognition. 
+This library requires PIL, numpy, opencv, colormath, shapely, and mapocr and its dependencies for text recognition. 
 
 In addition, maponyms relies on a local sqlite database of gazetteer names to use for geocoding. This database must be created as follows:
 
@@ -13,7 +13,7 @@ In addition, maponyms relies on a local sqlite database of gazetteer names to us
 
 First, import the library:
 
-    >>> import maponyms as maponyms
+    >>> import maponyms
 
 Next, load the image you wish to extract toponyms from:
 

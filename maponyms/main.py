@@ -6,7 +6,6 @@ from . import triangulate
 import mapocr
 
 import PIL, PIL.Image
-import numpy as np
 
 import datetime
 import time
