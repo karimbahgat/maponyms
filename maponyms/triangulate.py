@@ -447,18 +447,19 @@ def best_matchset(matchsets, verbose=False):
     for i,(origpointset,matchpointset) in enumerate(zip(origpointsets,matchpointsets)):
         origpointnames,origpointcoords = zip(*origpointset)
         matchpointnames,matchpointcoords = zip(*matchpointset)
-        res = tio.accuracy.auto_choose_model(origpointcoords, matchpointcoords, trytrans, refine_outliers=False)
+        # auto choose best backwards pixel loo rmse model (dont drop outliers)
+        res = tio.accuracy.auto_choose_model(matchpointcoords, origpointcoords, trytrans, refine_outliers=False)
         if verbose:
-            print('matchset', i, 'length', len(origpointset), 'model', res[0], 'error', res[-2])
+            print('matchset', i, 'length', len(origpointset), 'model', res[0], 'error', res[-1])
         results.append((i,res))
 
     # get the set with the lowest model error
     if verbose:
         print('\n'+'Final matchset (full model comparison):')
     #sortby = lambda(i,res): (-len(res[1]),res[-2]) # sort by setlength and then model error
-    sortby = lambda i_res: i_res[1][-2] # sort by model error only
+    sortby = lambda i_res: i_res[1][-1] # sort by model error only
     best = sorted(results, key=sortby)[0] 
-    best_i,(trans, inpoints, outpoints, err, resids) = best
+    best_i,(trans, inpoints, outpoints, predicted, resids, err) = best
     if verbose:
         print('chosen matchset num', best_i, 'model type', trans, 'model error', err)
     orignames,origcoords = zip(*origpointsets[best_i])
