@@ -123,7 +123,7 @@ def triangulate_add(coder, origs, matches, add, addcandidates=None):
     matches = patternmatch.find_best_matches(findpattern, combipatterns)
     return matches
 
-def find_matchsets(test, thresh=0.25, minpoints=8, mintrials=8, maxiter=10000, maxcandidates=None, n_combi=3, db=None, source='best', verbose=False, debug=False):
+def find_matchsets(test, thresh=0.25, minpoints=8, mintrials=8, maxiter=10000, maxcandidates=None, n_combi=3, db=None, source='best', lang=None, verbose=False, debug=False):
     # filter to those that can be geocoded
     if verbose:
         print('geocode and filter')
@@ -134,7 +134,7 @@ def find_matchsets(test, thresh=0.25, minpoints=8, mintrials=8, maxiter=10000, m
         if verbose:
             print('geocoding',nxtname)
         try:
-            res = list(coder.geocode(nxtname, maxcandidates))
+            res = list(coder.geocode(nxtname, maxcandidates, lang))
             if res:
                 if source == 'avg':
                     import math

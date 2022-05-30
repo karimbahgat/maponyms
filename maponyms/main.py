@@ -150,7 +150,7 @@ def text_detection(text_im, textcolor, **kwargs):
 
     return textinfo
 
-def toponym_selection(im, textinfo, seginfo=None, verbose=False):
+def toponym_selection(im, textinfo, seginfo=None, must_have_anchor=False, verbose=False):
     ################
     # Toponym selection
     texts = [f['properties'] for f in textinfo['features']]
@@ -166,7 +166,21 @@ def toponym_selection(im, textinfo, seginfo=None, verbose=False):
     topotexts = toponyms.detect_toponym_anchors(im, texts, topotexts)
 
     # create control points from toponyms
-    points = [(r['text_clean'], r['anchor']) for r in topotexts if 'anchor' in r] # if r['function']=='placename']
+    points = []
+    for r in topotexts:
+        name = r['text_clean']
+        if 'anchor' in r:
+            p = r['anchor']
+        else:
+            if must_have_anchor:
+                # only include toponyms with anchor points
+                continue
+            else:
+                # set missing anchor points to bbox center
+                x = r['left'] + r['width'] / 2.0
+                y = r['top'] + r['height'] / 2.0
+                p = (x,y)
+        points.append((name,p))
 
     # store metadata
     toponyminfo = {'type': 'FeatureCollection', 'features': []}
