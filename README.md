@@ -5,9 +5,7 @@ Detects toponyms from map images.
 
 This library requires PIL, numpy, opencv, colormath, shapely, and mapocr and its dependencies for text recognition. 
 
-In addition, maponyms relies on a local sqlite database of gazetteer names to use for geocoding. For convenience, a version of this database can be downloaded from:
-
-... 
+By default, maponyms relies on a local SQLite database of gazetteer names to use for geocoding. For convenience, a version of this database can be downloaded from [this link](https://filedn.com/lvxzpqbRuTkLnAjfFXe7FFu/Gazetteer%20DB/gazetteers%202022-05-31.zip). However, this is not necessary if you choose to use another database or gazetteer backend (see more details below). 
 
 ## Extracting toponyms from a map
 
@@ -53,7 +51,7 @@ After this, based on the resulting GeoJSON of relevant text labels, we try to id
     {'type': 'Feature', 'geometry': {'type': 'Point', 'coordinates': [522, 114]}, 'properties': {'name': 'Gossi'}}
     {'type': 'Feature', 'geometry': {'type': 'Point', 'coordinates': [730, 131]}, 'properties': {'name': 'Ansonge'}}
 
-The final step is trying to find the real-world lat-long coordinate of each toponym. This is done by searching the names in a gazetteer database and checking that the relative spatial locations matches up with the coordinates found in the database:
+The final step is trying to find the real-world lat-long coordinate of each toponym. This is done by looking up the names in an SQLite gazetteer database and checking that the relative spatial locations matches up with the coordinates found in the database. The path to the SQLite database is given using the `db` arg (see the installation section for notes about how to get or create the required SQLite gazetteer database):
 
     >>> db = r"P:\(Temp Backup)\gazetteer data\optim\gazetteers.db"
     >>> matched_toponyms = maponyms.main.match_control_points(candidate_toponyms, db=db)
@@ -64,9 +62,11 @@ The final step is trying to find the real-world lat-long coordinate of each topo
     ...     print(feat)
     {'type': 'Feature', 'geometry': {'type': 'Point', 'coordinates': (-0.86537, 14.22963)}, 'properties': {'origname': 'Aribinda', 'origx': 574, 'origy': 304, 'matchname': 'XAR|Aribinda', 'matchx': -0.86537, 'matchy': 14.22963}}
     {'type': 'Feature', 'geometry': {'type': 'Point', 'coordinates': (-3.279831, 9.6586821)}, 'properties': {'origname': 'Varalé', 'origx': 285, 'origy': 854, 'matchname': 'Varalé', 'matchx': -3.279831, 'matchy': 9.6586821}}
-    {'type': 'Feature', 'geometry': {'type': 'Point', 'coordinates': (1.133333, 8.983333)}, 'properties': {'origname': 'Sokode', 'origx': 816, 'origy': 934, 'matchname': 'SOKODE|Sokode|Sokodé|SOKODE|Sokode|Sokodé', 'matchx': 1.133333, 'matchy': 8.983333}}
+    {'type': 'Feature', 'geometry': {'type': 'Point', 'coordinates': (1.133333, 8.983333)}, 'properties': {'origname': 'Sokode', 'origx': 816, 'origy': 934, 'matchname': 'SOKODE|Sokode|Sokodé|SOKODE|Sokode|Sokodé', 'matchx': 1.133333, 'matchy': 8.983333}
 
-This leaves us with a final GeoJSON representing all toponyms found in the map, along with their pixel position in the image, as well as their location in the real world. 
+The results of the `match_control_points()` function leaves us with a final GeoJSON representing all toponyms found in the map, along with their pixel position in the image, as well as their location in the real world. 
+
+Alternatively, it's possible to provide any custom geocoder class or object, e.g. `match_control_points(candidate_toponyms, geocoder=some_object)`, as long as this object implements a `some_object.geocode(name)` method. The results of the method must be the same as shown above, i.e. a GeoJSON dict of type FeatureCollection, where the geometries are longitude-latitude points and the properties contain the keys: `origname`, `origx`, `origy`, `matchname`, `matchx`, `matchy`. 
 
 ## Using the toponym coordinates to georeference the map
 
