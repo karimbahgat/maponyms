@@ -1,5 +1,5 @@
 
-Pillow==6.*
+Pillow==8.*
 numpy==1.*
 colormath==3.0
 shapely==1.*
