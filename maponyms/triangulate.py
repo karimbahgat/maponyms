@@ -123,7 +123,7 @@ def triangulate_add(coder, origs, matches, add, addcandidates=None):
     matches = patternmatch.find_best_matches(findpattern, combipatterns)
     return matches
 
-def find_matchsets(test, thresh=0.25, minpoints=8, mintrials=8, maxiter=10000, maxcandidates=None, n_combi=3, geocoder=None, db=None, source='best', lang=None, verbose=False, debug=False):
+def find_matchsets(test, thresh=0.25, minpoints=3, maxtrials=8, maxiter=10000, maxcandidates=None, n_combi=3, geocoder=None, db=None, source='best', lang=None, verbose=False, debug=False):
     # filter to those that can be geocoded
     if verbose:
         print('geocode and filter')
@@ -271,7 +271,7 @@ def find_matchsets(test, thresh=0.25, minpoints=8, mintrials=8, maxiter=10000, m
         #print '\n>>>'.join([repr((round(tr[2],6),[n for n,p in tr[0]],'-->',[n[:15] for n in tr[1]['properties']['combination']]))
         #                 for tr in triangles])
         
-        if len(resultsets) >= mintrials: # and max((len(r) for r,f,d in resultsets)) >= minpoints:
+        if len(resultsets) >= maxtrials: # and max((len(r) for r,f,d in resultsets)) >= minpoints:
             # TODO: should actually be called maxtrials
             if verbose:
                 print('reached maximum trials, exiting')
