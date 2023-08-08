@@ -256,6 +256,9 @@ def find_matchsets(test, thresh=0.25, minpoints=8, mintrials=8, maxiter=10000, m
                         resultset.append((nxtname,nxtpos))
                         f = mf
                 
+                if len(resultset) < minpoints:
+                    continue
+
                 if verbose:
                     print('\n'+'MATCHES FOUND (point pattern error=%r)' % round(diff,6))
                     print('>>>', repr([n for n,p in resultset]),'-->',[n[:15] for n in f['properties']['combination']])
@@ -268,10 +271,15 @@ def find_matchsets(test, thresh=0.25, minpoints=8, mintrials=8, maxiter=10000, m
         #print '\n>>>'.join([repr((round(tr[2],6),[n for n,p in tr[0]],'-->',[n[:15] for n in tr[1]['properties']['combination']]))
         #                 for tr in triangles])
         
-        if len(resultsets) >= mintrials and max((len(r) for r,f,d in resultsets)) >= minpoints:
+        if len(resultsets) >= mintrials: # and max((len(r) for r,f,d in resultsets)) >= minpoints:
+            # TODO: should actually be called maxtrials
+            if verbose:
+                print('reached maximum trials, exiting')
             break
 
         if i >= maxiter:
+            if verbose:
+                print('reached maximum iterations, exiting')
             break
 
     return resultsets
@@ -441,7 +449,7 @@ def best_matchset(matchsets, verbose=False):
     origpointsets,matchpointsets,diffs = zip(*resultsets)
     matchpointsets = [list(zip(f['properties']['combination'], f['geometry']['coordinates'])) for f in matchpointsets]
 
-    # for each set, estimate the optimal polynomial model
+    # for each set, estimate the optimal polynomial model (if any)
     trytrans = [tio.transforms.Polynomial(order=1), tio.transforms.Polynomial(order=2), tio.transforms.Polynomial(order=3)]
     results = []
     for i,(origpointset,matchpointset) in enumerate(zip(origpointsets,matchpointsets)):
@@ -449,9 +457,17 @@ def best_matchset(matchsets, verbose=False):
         matchpointnames,matchpointcoords = zip(*matchpointset)
         # auto choose best backwards pixel loo rmse model (dont drop outliers)
         res = tio.accuracy.auto_choose_model(matchpointcoords, origpointcoords, trytrans, refine_outliers=False)
-        if verbose:
-            print('matchset', i, 'length', len(origpointset), 'model', res[0], 'error', res[-1])
-        results.append((i,res))
+        if res:
+            if verbose:
+                print('matchset', i, 'length', len(origpointset), 'model', res[0], 'error', res[-1])
+            results.append((i,res))
+        else:
+            if verbose:
+                print('matchset', i, 'length', len(origpointset), 'no model')
+
+    # raise exception if no model could be estimated
+    if not results:
+        raise Exception('None of the matchsets could be fitted to a model')
 
     # get the set with the lowest model error
     if verbose:

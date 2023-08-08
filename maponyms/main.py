@@ -199,7 +199,7 @@ def match_control_points(toponyminfo, **kwargs):
 
     # find matches
     matchsets = triangulate.find_matchsets(points, **kwargs)
-    origs,matches = triangulate.best_matchset(matchsets)
+    origs,matches = triangulate.best_matchset(matchsets, verbose=kwargs.get('verbose', False))
     orignames,origcoords = zip(*origs)
     matchnames,matchcoords = zip(*matches)
     tiepoints = list(zip(origcoords, matchcoords))
