@@ -52,10 +52,10 @@ def filter_toponym_candidates(data, seginfo=None):
             if not text['text_clean'][0].isupper():
                 # first char must be uppercase
                 continue
-            if len([ch for ch in alphachars if ch.isupper()]) > (len(alphachars) / 2.0):
-                # are mostly uppercase
-                # upper = more than half of characters is uppercase (to allow for minor ocr upper/lower errors)
-                continue
+            #if len([ch for ch in alphachars if ch.isupper()]) > (len(alphachars) / 2.0):
+            #    # are mostly uppercase
+            #    # upper = more than half of characters is uppercase (to allow for minor ocr upper/lower errors)
+            #    continue
 
         # only texts in relevant parts of the image
         if seginfo and (incl_shp or excl_shp):
