@@ -7,7 +7,7 @@ import PIL, PIL.Image
 
 import cv2
 
-import shapely
+import shapely, shapely.geometry, shapely.ops
 
 
 
@@ -17,7 +17,7 @@ def filter_toponym_candidates(data, seginfo=None):
         incl_shp = None
         mapregion = next((f['geometry'] for f in seginfo['features'] if f['properties']['type'] == 'Map'), None)
         if mapregion:
-            mapshp = shapely.geometry.asShape(mapregion)
+            mapshp = shapely.geometry.shape(mapregion)
             mapshp = mapshp if mapshp.is_valid else mapshp.buffer(0) # try to fix if invalid
             mapshp = mapshp if mapshp.is_valid else None # only keep if valid
             if mapshp:
@@ -27,7 +27,7 @@ def filter_toponym_candidates(data, seginfo=None):
         excl_shp = None
         boxes = [f['geometry'] for f in seginfo['features'] if f['properties']['type'] == 'Box']
         if boxes:
-            boxshps = [shapely.geometry.asShape(box) for box in boxes]
+            boxshps = [shapely.geometry.shape(box) for box in boxes]
             boxshps = [b if b.is_valid else b.buffer(0) # try to fix invalid ones
                        for b in boxshps]
             boxshps = [b for b in boxshps if b.is_valid] # only keep those that remain valid

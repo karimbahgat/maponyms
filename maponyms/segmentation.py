@@ -127,6 +127,11 @@ def quantize(im):
     quant = im.convert('P', palette=PIL.Image.ADAPTIVE, colors=256).convert('RGB')
     return quant
 
+def increase_contrast(im, factor):
+    from PIL import ImageEnhance
+    im = ImageEnhance.Contrast(im).enhance(factor)
+    return im
+
 def mask_image(im, poly, invert=False):
     mask = np.zeros((im.size[1], im.size[0]))
     cv2.drawContours(mask, [poly], -1, 255, -1)
@@ -221,11 +226,12 @@ def detect_map_outline(im):
     largest = sorted(contours, key=lambda cnt: cv2.contourArea(cnt))[-1]
     w,h = im.size
     im_area = w*h
-    if cv2.contourArea(largest) > im_area/(3.0**2):
+    if cv2.contourArea(largest) > (im_area/3.0):
         # maybe also require that contour doesnt touch edges of the image
-        xbuf,ybuf = 2,2 #w/100.0, h/100.0 # 1 percent
-        if largest[:,:,0].min() > 0+xbuf and largest[:,:,0].max() < w-xbuf \
-           and largest[:,:,1].max() > 0+ybuf and largest[:,:,1].max() < h-ybuf:
+        xbuf,ybuf = 0,0 #w/100.0, h/100.0 # 1 percent
+        xs,ys = largest[:,:,0], largest[:,:,1]
+        if xs.min() > 0+xbuf and xs.max() < w-xbuf \
+           and ys.min() > 0+ybuf and ys.max() < h-ybuf:
             return largest
 
 def detect_boxes(im):
@@ -240,12 +246,29 @@ def detect_boxes(im):
     im_area = im.size[0] * im.size[1]
     for cnt in contours: #sorted(contours,key=lambda c: cv2.contourArea(c), reverse=True)[:10]:
         #cv2.drawContours(im_arr_draw, [cnt], -1, (randrange(0,255),randrange(0,255),randrange(0,255)), -1) #-1, (0,255,0), 1)
-        epsilon = 5 # pixels # 0.01*cv2.arcLength(cnt,True)
-        approx = cv2.approxPolyDP(cnt,epsilon,True)
-        if len(approx) == 4:
-            # less than half the size (a quarter corner), and bigger than one-sixteenth (half of half of half of a quarter corner)
-            if (im_area/(2.0**2)) > cv2.contourArea(cnt) > (im_area/(16.0**2)):
-                boxes.append(cnt) #approx
+        area = cv2.contourArea(cnt)
+        
+        # alt1: check if shape approximation has 4 corners
+        # epsilon = 5 # pixels
+        # #epsilon = 0.01*cv2.arcLength(cnt,True)
+        # approx = cv2.approxPolyDP(cnt,epsilon,True)
+        # print(len(cnt), len(approx), area, im_area)
+        # if len(approx) != 4:
+        #     continue
+
+        # alt 2: check if shape area is within 90% of bbox area
+        xs,ys = cnt[:,:,0], cnt[:,:,1]
+        xmin,ymin,xmax,ymax = xs.min(), ys.min(), xs.max(), ys.max()
+        bbw,bbh = xmax-xmin, ymax-ymin
+        bbarea = bbw * bbh
+        #print(area, bbarea, area/float(bbarea))
+        if area < (bbarea * 0.90):
+            continue
+
+        # only consider boxes with area less than a third, and bigger than one-eighth (half of half of a quarter corner)
+        if (im_area/3.0) > area > (im_area/(8.0**2)):
+            #print('found box')
+            boxes.append(cnt)
 
     #PIL.Image.fromarray(im_arr_draw).show()
     return boxes
@@ -357,19 +380,28 @@ class Quad:
 
 #####################
 
-def image_segments(im):
+def image_segments(im, verbose=False):
     '''This is the main user function'''
     # resize to smaller resolution
+    if verbose:
+        print('downsizing image for image segmentation')
     w,h = im.size
     dw,dh = 1000,1000
     ratio = max(w/float(dw), h/float(dh))
-    im_small = im.resize((int(w/ratio), int(h/ratio)), PIL.Image.NEAREST)
-    #im_small.show()
+    im_small = im.resize((int(w/ratio), int(h/ratio)), PIL.Image.ANTIALIAS)
+
+    # increase color contrast
+    if verbose:
+        print('increasing color contrast')
+    im_small = increase_contrast(im_small, 2.0) # 2x contrast
 
     # filter to edges
     #edges = edge_filter(im_small)
 
     # OR edges from 3x3 color changes
+    if verbose:
+        print('running color edge detection')
+        #im_small.show()
     changes = color_changes(im_small, neighbours=1)
     thresh = 10
     changes[changes < thresh] = 0
@@ -382,19 +414,65 @@ def image_segments(im):
     # NOTE: masking should be done on each sample image
 
     # find map outline
-    #edges.show()
-    map_outline = detect_map_outline(edges)
-    if map_outline is not None:
-        # convert back to original image coords
-        map_outline = (map_outline * ratio).astype(np.uint64)
+    if verbose:
+        print('extracting map contour')
+        #edges.show()
+    _map_outline = detect_map_outline(edges)
+    if _map_outline is None:
+        map_outline = None
+    else:
+        try:
+            # convert back to original image coords
+            _map_outline = (_map_outline * ratio).astype(np.uint64)
+            # convert to simplified and valid polygon
+            from shapely.geometry import LinearRing
+            map_outline = tuple([tuple(p[0].tolist()) for p in _map_outline])
+            mapshp = LinearRing(map_outline)
+            mapshp = mapshp if mapshp.is_valid else mapshp.buffer(0) # try to fix if invalid 
+            mapshp = mapshp.simplify(5) # 5 pixel threshold
+            assert mapshp.is_valid # only keep if valid
+            # convert back to coordlist
+            map_outline = list(mapshp.coords)
+
+        except Exception as err:
+            if verbose:
+                print(f'failed to get map countour, using simplified bbox instead ({err})')
+            xs,ys = _map_outline[:,:,0], _map_outline[:,:,1]
+            xmin,ymin,xmax,ymax = map(float, [xs.min(), ys.min(), xs.max(), ys.max()])
+            map_outline = [(xmin,ymin), (xmin,ymax), (xmax,ymax), (xmax,ymin), (xmin,ymin)]
 
     # find boxes
-    #edges = edges.point(lambda v: 255-v) # inverse, since we expect the inside of boxes to be cleaner/less noise? 
-    #edges.show()
-    boxes = detect_boxes(edges)
-    # convert back to original image coords
-    boxes = [(box*ratio).astype(np.uint64) for box in boxes]
+    if verbose:
+        print('extracting rectangular box contours')
+    _boxes = detect_boxes(edges)
+    boxes = []
+    for _box in _boxes:
+        try:
+            # convert back to original image coords
+            _box = (_box*ratio).astype(np.uint64)
+            # convert to simplified and valid polygons
+            from shapely.geometry import LinearRing
+            box = tuple([tuple(p[0].tolist()) for p in _box])
+            boxshp = LinearRing(box)
+            boxshp = boxshp if boxshp.is_valid else boxshp.buffer(0) # try to fix if invalid 
+            boxshp = boxshp.simplify(5) # 5 pixel threshold
+            assert boxshp.is_valid # only keep if valid
+            # convert back to coordlist
+            box = list(boxshp.coords)
+            boxes.append(box)
+        
+        except Exception as err:
+            if verbose:
+                print(f'failed to get box countour, using simplified bbox instead ({err})')
+            xs,ys = _box[:,:,0], _box[:,:,1]
+            xmin,ymin,xmax,ymax = map(float, [xs.min(), ys.min(), xs.max(), ys.max()])
+            box = [(xmin,ymin), (xmin,ymax), (xmax,ymax), (xmax,ymin), (xmin,ymin)]
+            boxes.append(box)
 
+    if verbose:
+        map_count = 1 if map_outline else 0
+        box_count = len(boxes)
+        print(f'extracted {map_count} map outlines, {box_count} box outlines')
     return map_outline, boxes
 
 def sample_quads(bbox, samplesize):

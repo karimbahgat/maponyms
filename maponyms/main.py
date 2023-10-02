@@ -24,12 +24,13 @@ except:
 
 ### FUNCS FOR DIFFERENT STAGES
 
-def image_partitioning(im):
+def image_partitioning(im, **kwargs):
     ################
     # Image partitioning
+    verbose = kwargs.get('verbose')
     
     # partition image
-    mapp_poly,box_polys = segmentation.image_segments(im)
+    mapp_poly,box_polys = segmentation.image_segments(im, verbose=verbose)
 
     # create as feature collection (move to image_segments()?)
     seginfo = {'type': 'FeatureCollection',
@@ -38,7 +39,7 @@ def image_partitioning(im):
     # (map)
     if mapp_poly is not None:
         mapp_geoj = {'type': 'Polygon',
-                     'coordinates': [ [tuple(p[0].tolist()) for p in mapp_poly] ]}
+                     'coordinates': [ mapp_poly ]}
         props = {'type':'Map'}
         feat = {'type': 'Feature', 'properties': props, 'geometry': mapp_geoj}
         seginfo['features'].append(feat)
@@ -47,7 +48,7 @@ def image_partitioning(im):
     # (boxes)
     if box_polys:
         boxes_geoj = [{'type': 'Polygon',
-                     'coordinates': [ [tuple(p[0].tolist()) for p in box] ]}
+                     'coordinates': [ box ]}
                       for box in box_polys]
         for box_geoj in boxes_geoj:
             props = {'type':'Box'}
@@ -70,7 +71,7 @@ def text_detection(text_im, textcolor, **kwargs):
     
     # detect text
     if verbose:
-        print('(detecting text)')
+        print('# detecting text')
     if textcolor and isinstance(textcolor, (tuple,list)) and isinstance(textcolor[0], (int,float)):
         textcolor = [textcolor]
     textcolor = [tuple(c) for c in textcolor]
@@ -81,7 +82,7 @@ def text_detection(text_im, textcolor, **kwargs):
     # very brute force...
     if len(toponym_colors) > 1:
         if verbose:
-            print('(deduplicating texts of different colors)')
+            print('# deduplicating texts of different colors')
             print('textlen',len(texts))
         # for every combination of text colors
         for col,col2 in itertools.combinations(toponym_colors, 2):
@@ -115,7 +116,7 @@ def text_detection(text_im, textcolor, **kwargs):
 
     # connect texts
     if verbose:
-        print('(connecting texts)')
+        print('# connecting texts')
     grouped = []
     # connect each color texts separately
     for col in toponym_colors:
@@ -162,7 +163,7 @@ def toponym_selection(im, textinfo, seginfo=None, must_have_anchor=False, verbos
 
     # text anchor points
     if verbose:
-        print('determening toponym anchors')
+        print('determining toponym anchors')
     topotexts = toponyms.detect_toponym_anchors(im, texts, topotexts)
 
     # create control points from toponyms
