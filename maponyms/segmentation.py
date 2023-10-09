@@ -129,6 +129,8 @@ def quantize(im):
 
 def increase_contrast(im, factor):
     from PIL import ImageEnhance
+    if im.mode != 'RGB':
+        im = im.convert('RGB')
     im = ImageEnhance.Contrast(im).enhance(factor)
     return im
 
